@@ -1,0 +1,31 @@
+# Copy to config/jobs.conf and adjust for the target repository.
+
+REPO_NAME="example-repo"
+REPO_PATH="/srv/repos/example-repo"
+BASE_BRANCH="main"
+NIGHTLY_BRANCH_PREFIX="nightly/codex"
+TASK_FILE="${AI_NIGHTLY_ROOT}/tasks/codex_goal_prompt.md"
+
+MAX_RUNTIME="5h"
+LOG_DIR="${AI_NIGHTLY_ROOT}/logs"
+REPORT_DIR="${AI_NIGHTLY_ROOT}/reports"
+LOCK_DIR="${AI_NIGHTLY_ROOT}/run/lock"
+
+# Optional verification commands run from REPO_PATH after Codex finishes.
+TEST_COMMAND=""
+LINT_COMMAND=""
+BUILD_COMMAND=""
+
+# Codex execution defaults. Keep approval policy as never for unattended runs.
+CODEX_BIN="codex"
+CODEX_SANDBOX="workspace-write"
+CODEX_APPROVAL_POLICY="never"
+CODEX_MODEL=""
+CODEX_PROFILE=""
+CODEX_EXEC_ARGS=""
+CODEX_AUTONOMY_LEVEL="pr-ready"
+
+# PR output defaults.
+# off: no PR draft, draft-file: write reports/YYYYMMDD/*-pr.md, gh-draft: push and open a GitHub draft PR.
+PR_MODE="draft-file"
+PR_REMOTE="origin"

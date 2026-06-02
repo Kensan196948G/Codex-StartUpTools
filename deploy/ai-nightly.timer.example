@@ -1,0 +1,10 @@
+[Unit]
+Description=Run AI Nightly Codex job every day at midnight
+
+[Timer]
+OnCalendar=*-*-* 00:00:00
+Persistent=true
+Unit=ai-nightly.service
+
+[Install]
+WantedBy=timers.target

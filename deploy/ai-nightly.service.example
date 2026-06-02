@@ -1,0 +1,13 @@
+[Unit]
+Description=AI Nightly Codex job
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/ai-nightly
+ExecStart=/bin/bash -lc '. /opt/ai-nightly/config/env.sh && /opt/ai-nightly/bin/nightly_codex.sh --config /opt/ai-nightly/config/jobs.conf'
+User=ai-nightly
+Group=ai-nightly
+NoNewPrivileges=true
+PrivateTmp=true

@@ -1,0 +1,11 @@
+# Linux Codex startup menu configuration.
+
+PROJECTS_DIR="/home/kensan/Projects"
+CODEX_COMMAND="codex"
+CODEX_ARGS=""
+STARTUP_LOG_DIR="${AI_NIGHTLY_ROOT}/logs/startup"
+RECENT_PROJECTS_FILE="${AI_NIGHTLY_ROOT}/state/recent-projects.tsv"
+MENU_MAX_PROJECTS="80"
+DEFAULT_SCHEDULE="00:00"
+DEFAULT_SCHEDULE_DAYS="*"
+AUTO_SETUP_VERIFY="true"
