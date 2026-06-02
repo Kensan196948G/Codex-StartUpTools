@@ -5,6 +5,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck disable=SC1091
 source "$SCRIPT_DIR/../lib/common.sh"
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/../lib/model_usage.sh"
 
 usage() {
   cat <<'USAGE'
@@ -75,6 +77,11 @@ CODEX_EXEC_ARGS="${CODEX_EXEC_ARGS:-}"
 CODEX_AUTONOMY_LEVEL="${CODEX_AUTONOMY_LEVEL:-pr-ready}"
 PR_MODE="${CLI_PR_MODE:-${PR_MODE:-draft-file}}"
 PR_REMOTE="${PR_REMOTE:-origin}"
+MODEL_AUTO_FAILOVER="${MODEL_AUTO_FAILOVER:-false}"
+MODEL_PRIMARY="${MODEL_PRIMARY:-gpt-5.3-codex-spark}"
+MODEL_FALLBACK="${MODEL_FALLBACK:-gpt-5.5}"
+MODEL_SESSION_LIMIT="${MODEL_SESSION_LIMIT:-18000}"
+MODEL_SWITCH_THRESHOLD="${MODEL_SWITCH_THRESHOLD:-10}"
 
 [[ "$PR_MODE" =~ ^(off|draft-file|gh-draft)$ ]] || die "PR_MODE must be off, draft-file, or gh-draft"
 
@@ -106,6 +113,11 @@ REPORT_FILE="$DAY_REPORT_DIR/$JOB_ID.md"
 PR_DRAFT_FILE="$DAY_REPORT_DIR/$JOB_ID-pr.md"
 PR_URL_FILE="$DAY_REPORT_DIR/$JOB_ID-pr.url"
 LOCK_PATH="$LOCK_DIR/$(sanitize_name "$REPO_NAME").lock"
+
+if [[ "$MODEL_AUTO_FAILOVER" == "true" && -z "$CODEX_MODEL" && "$SKIP_CODEX" != "true" ]]; then
+  CODEX_MODEL="$(model_usage_select)"
+  log "model-failover: selected model: $CODEX_MODEL"
+fi
 
 if [[ "$DRY_RUN" == "true" ]]; then
   "$SCRIPT_DIR/prepare_repo.sh" --repo "$REPO_PATH" --base "$BASE_BRANCH" --branch "$NIGHTLY_BRANCH" --dry-run
@@ -212,6 +224,10 @@ ended_at="$(date '+%Y-%m-%dT%H:%M:%S%z')"
 write_meta "$META_FILE" ended_at "$ended_at"
 write_meta "$META_FILE" exit_code "$codex_exit_code"
 write_meta "$META_FILE" duration_sec "$((ended_epoch - started_epoch))"
+
+if [[ "$MODEL_AUTO_FAILOVER" == "true" && -n "$CODEX_MODEL" ]]; then
+  model_usage_record "$CODEX_MODEL" "$((ended_epoch - started_epoch))" "$codex_exit_code" "$LOG_FILE"
+fi
 write_meta "$META_FILE" log_file "$LOG_FILE"
 write_meta "$META_FILE" diff_file "$DIFF_FILE"
 write_meta "$META_FILE" diff_stat_file "$DIFF_STAT_FILE"

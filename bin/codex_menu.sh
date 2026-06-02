@@ -7,6 +7,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../lib/common.sh"
 # shellcheck disable=SC1091
 source "$SCRIPT_DIR/../lib/startup.sh"
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/../lib/model_usage.sh"
 
 usage() {
   cat <<'USAGE'
@@ -248,6 +250,7 @@ show_menu() {
   menu_item "9." "🗓️" "管理 cron" "一覧・変更・削除"
   menu_item "10." "✅" "make verify" "構文・lint・テスト"
   menu_item "11." "📋" "Codex goal prompt 起動" "codex_goal_prompt.md を goal として実行"
+  menu_item "12." "🔄" "モデル使用量管理" "状況確認・リセット・週間上限マーク"
   menu_item "0." "🚪" "終了"
   printf '\n'
 }
@@ -292,6 +295,7 @@ interactive_loop() {
   local max_runtime
   local schedule_time
   local task_file
+  local model_choice
 
   while true; do
     show_menu
@@ -392,6 +396,34 @@ interactive_loop() {
         else
           printf '%s\n' "$(color "$C_YELLOW" "⚠️  tasks/codex_goal_prompt.md が見つかりません。")"
         fi
+        wait_enter
+        ;;
+      12)
+        printf '\n%s\n' "$(color "$C_BOLD$C_CYAN" "🔄 モデル使用量管理")"
+        model_usage_status_line
+        printf '\n%s\n' "$(color "$C_BOLD$C_MAGENTA" "操作を選択してください")"
+        printf '  %s %s\n' "$(color "$C_YELLOW" "1.")" "$(color "$C_WHITE" "全リセット（両モデルの使用量を0に）")"
+        printf '  %s %s\n' "$(color "$C_YELLOW" "2.")" "$(color "$C_WHITE" "プライマリ($MODEL_PRIMARY)のみリセット")"
+        printf '  %s %s\n' "$(color "$C_YELLOW" "3.")" "$(color "$C_WHITE" "フォールバック($MODEL_FALLBACK)のみリセット")"
+        printf '  %s %s\n' "$(color "$C_YELLOW" "4.")" "$(color "$C_WHITE" "プライマリを週間上限済みとしてマーク")"
+        printf '  %s %s\n' "$(color "$C_YELLOW" "5.")" "$(color "$C_WHITE" "フォールバックを週間上限済みとしてマーク")"
+        printf '  %s %s\n' "$(color "$C_YELLOW" "0.")" "$(color "$C_WHITE" "戻る")"
+        printf '\n%s ' "$(color "$C_BOLD$C_GREEN" "👉 選択:")"
+        read -r model_choice
+        case "${model_choice}" in
+          1) run_menu_command model_usage_reset all
+             [[ "${MENU_COMMAND_STATUS:-1}" -eq 0 ]] && printf '%s\n' "$(color "$C_GREEN" "✅ 全リセット完了")" ;;
+          2) run_menu_command model_usage_reset primary
+             [[ "${MENU_COMMAND_STATUS:-1}" -eq 0 ]] && printf '%s\n' "$(color "$C_GREEN" "✅ プライマリリセット完了")" ;;
+          3) run_menu_command model_usage_reset fallback
+             [[ "${MENU_COMMAND_STATUS:-1}" -eq 0 ]] && printf '%s\n' "$(color "$C_GREEN" "✅ フォールバックリセット完了")" ;;
+          4) run_menu_command model_usage_mark_exhausted "$MODEL_PRIMARY"
+             [[ "${MENU_COMMAND_STATUS:-1}" -eq 0 ]] && printf '%s\n' "$(color "$C_YELLOW" "⛔ $MODEL_PRIMARY を週間上限済みとしてマークしました")" ;;
+          5) run_menu_command model_usage_mark_exhausted "$MODEL_FALLBACK"
+             [[ "${MENU_COMMAND_STATUS:-1}" -eq 0 ]] && printf '%s\n' "$(color "$C_YELLOW" "⛔ $MODEL_FALLBACK を週間上限済みとしてマークしました")" ;;
+          0) : ;;
+          *) printf '%s\n' "$(color "$C_RED" "❌ 無効な選択です。")" ;;
+        esac
         wait_enter
         ;;
       0|Q|QUIT|EXIT)

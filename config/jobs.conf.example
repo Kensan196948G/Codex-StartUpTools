@@ -29,3 +29,13 @@ CODEX_AUTONOMY_LEVEL="pr-ready"
 # off: no PR draft, draft-file: write reports/YYYYMMDD/*-pr.md, gh-draft: push and open a GitHub draft PR.
 PR_MODE="draft-file"
 PR_REMOTE="origin"
+
+# Model auto-failover: automatically switch between models based on 5h usage tracking.
+# Set MODEL_AUTO_FAILOVER=true to enable. CODEX_MODEL must be empty to allow auto-selection.
+# Primary model is used first; when it reaches <=MODEL_SWITCH_THRESHOLD% of MODEL_SESSION_LIMIT,
+# or hits weekly quota, the fallback model is used instead. Resets every Monday.
+MODEL_AUTO_FAILOVER="false"
+MODEL_PRIMARY="gpt-5.3-codex-spark"
+MODEL_FALLBACK="gpt-5.5"
+MODEL_SESSION_LIMIT="18000"
+MODEL_SWITCH_THRESHOLD="10"

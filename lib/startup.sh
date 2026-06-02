@@ -144,6 +144,10 @@ show_startup_dashboard() {
   printf '  🧾 %s : %s\n' "$(color "$C_YELLOW" "ログ         ")" "$(color "$C_WHITE" "$STARTUP_LOG_DIR")"
   printf '  📊 %s : %s\n' "$(color "$C_YELLOW" "本日のログ   ")" "$(color "$C_WHITE" "$today_logs")"
   printf '  📦 %s : %s\n' "$(color "$C_YELLOW" "検出PJ数     ")" "$(color "$C_WHITE" "$project_count")"
+  if [[ "${MODEL_AUTO_FAILOVER:-false}" == "true" ]] && declare -f model_usage_status_line >/dev/null 2>&1; then
+    printf '\n'
+    model_usage_status_line
+  fi
 }
 
 select_project_interactive() {
