@@ -392,7 +392,8 @@ interactive_loop() {
             --project "$project_path" \
             --task "$task_file" \
             --profile yolo \
-            --interactive
+            --interactive \
+            --model-auto
         else
           printf '%s\n' "$(color "$C_YELLOW" "⚠️  tasks/codex_goal_prompt.md が見つかりません。")"
         fi

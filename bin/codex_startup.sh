@@ -7,6 +7,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../lib/common.sh"
 # shellcheck disable=SC1091
 source "$SCRIPT_DIR/../lib/startup.sh"
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/../lib/model_usage.sh"
 
 usage() {
   cat <<'USAGE'
@@ -23,6 +25,7 @@ Options:
   --exec PROMPT        Run `codex exec` with PROMPT instead of interactive Codex.
   --task FILE          Run `codex exec` feeding FILE as the goal prompt via stdin.
   --interactive        With --task: launch interactive TUI with FILE as the initial goal prompt.
+  --model-auto         Auto-select model via model_usage.sh failover (records usage after run).
   --                  Remaining args are passed to Codex.
   -h, --help           Show this help.
 USAGE
@@ -36,6 +39,8 @@ PROFILE=""
 EXEC_PROMPT=""
 TASK_FILE=""
 INTERACTIVE_MODE="false"
+MODEL_AUTO="false"
+SELECTED_MODEL=""
 EXTRA_ARGS=()
 
 while [[ $# -gt 0 ]]; do
@@ -48,6 +53,7 @@ while [[ $# -gt 0 ]]; do
     --exec) EXEC_PROMPT="$2"; shift 2 ;;
     --task) TASK_FILE="$2"; shift 2 ;;
     --interactive) INTERACTIVE_MODE="true"; shift ;;
+    --model-auto) MODEL_AUTO="true"; shift ;;
     --) shift; EXTRA_ARGS+=("$@"); break ;;
     -h|--help) usage; exit 0 ;;
     *) EXTRA_ARGS+=("$1"); shift ;;
@@ -73,6 +79,10 @@ if [[ -n "$TASK_FILE" ]]; then
   [[ -f "$TASK_FILE" ]] || die "task file not found: $TASK_FILE"
 fi
 
+if [[ "$MODEL_AUTO" == "true" ]]; then
+  SELECTED_MODEL="$(model_usage_select)"
+fi
+
 ARGS=()
 if [[ -n "$CODEX_ARGS" ]]; then
   read -r -a DEFAULT_CODEX_ARGS <<<"$CODEX_ARGS"
@@ -80,6 +90,9 @@ if [[ -n "$CODEX_ARGS" ]]; then
 fi
 if [[ -n "$PROFILE" ]]; then
   ARGS+=("-p" "$PROFILE")
+fi
+if [[ -n "$SELECTED_MODEL" ]]; then
+  ARGS+=("-m" "$SELECTED_MODEL")
 fi
 if [[ "$FULL_AUTO" == "true" ]]; then
   ARGS+=("-a" "never" "-s" "workspace-write")
@@ -111,6 +124,11 @@ if [[ -n "$TASK_FILE" ]]; then
   else
     printf '  Mode    : %s\n' "exec (batch)"
   fi
+fi
+if [[ -n "$SELECTED_MODEL" ]]; then
+  _plan_rem="$(_model_remaining_seconds "$SELECTED_MODEL")"
+  _plan_pct=$(( _plan_rem * 100 / MODEL_SESSION_LIMIT ))
+  printf '  Model   : %s (auto-selected, %d%% remaining)\n' "$SELECTED_MODEL" "$_plan_pct"
 fi
 printf '  Command : %s' "$CODEX_COMMAND"
 printf ' %q' "${ARGS[@]}"
@@ -151,6 +169,9 @@ if [[ "$exit_code" -eq 0 ]]; then
   record_recent_project "$PROJECT_PATH" "success" "$elapsed_ms"
 else
   record_recent_project "$PROJECT_PATH" "failure" "$elapsed_ms"
+fi
+if [[ "$MODEL_AUTO" == "true" && -n "$SELECTED_MODEL" ]]; then
+  model_usage_record "$SELECTED_MODEL" "$(( elapsed_ms / 1000 ))" "$exit_code" "$log_file"
 fi
 
 exit "$exit_code"
